@@ -60,3 +60,50 @@ Create the name of the service account to use
 {{- default "default" .Values.gzctf.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Database connection string
+*/}}
+{{- define "gzctf.databaseConnectionString" -}}
+{{- if .Values.gzctf.config.database.host -}}
+{{- printf "Host=%s;Database=%s;Username=%s;Password=%s" .Values.gzctf.config.database.host .Values.gzctf.config.database.name .Values.gzctf.config.database.username .Values.gzctf.config.database.password -}}
+{{- else if .Values.postgresql.enabled -}}
+{{- printf "Host=%s:5432;Database=%s;Username=%s;Password=%s" (printf "%s-db" (include "gzctf.fullname" .)) .Values.gzctf.config.database.name .Values.gzctf.config.database.username .Values.gzctf.config.database.password -}}
+{{- else if (index .Values "postgresql-ha").enabled -}}
+{{- printf "Host=%s-postgresql-ha-pgpool:5432;Database=%s;Username=%s;Password=%s" .Release.Name (index .Values "postgresql-ha").postgresql.database (index .Values "postgresql-ha").postgresql.username (index .Values "postgresql-ha").postgresql.password -}}
+{{- else -}}
+{{- printf "Host=gzctf-db:5432;Database=%s;Username=%s;Password=%s" .Values.gzctf.config.database.name .Values.gzctf.config.database.username .Values.gzctf.config.database.password -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Redis connection string
+*/}}
+{{- define "gzctf.redisConnectionString" -}}
+{{- if .Values.gzctf.config.redis.host -}}
+{{- printf "%s,abortConnect=%t" .Values.gzctf.config.redis.host .Values.gzctf.config.redis.abortConnect -}}
+{{- else if .Values.garnet.enabled -}}
+{{- printf "%s-garnet:6379,abortConnect=%t" (include "gzctf.fullname" .) .Values.gzctf.config.redis.abortConnect -}}
+{{- else if (index .Values "redis-ha").enabled -}}
+{{- if (index .Values "redis-ha").haproxy.enabled -}}
+{{- printf "%s-redis-ha-haproxy:6379,password=%s,abortConnect=%t" .Release.Name (index .Values "redis-ha").redisPassword .Values.gzctf.config.redis.abortConnect -}}
+{{- else -}}
+{{- printf "%s-redis-ha:6379,password=%s,abortConnect=%t" .Release.Name (index .Values "redis-ha").redisPassword .Values.gzctf.config.redis.abortConnect -}}
+{{- end -}}
+{{- else -}}
+{{- printf "gzctf-garnet:6379,abortConnect=%t" .Values.gzctf.config.redis.abortConnect -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Storage connection string (MinIO/S3)
+*/}}
+{{- define "gzctf.storageConnectionString" -}}
+{{- if .Values.gzctf.config.storage.connectionString -}}
+{{- .Values.gzctf.config.storage.connectionString -}}
+{{- else if and .Values.gzctf.config.storage.enabled .Values.minio.enabled -}}
+{{- printf "minio.s3://serviceUrl=%s-minio:9000;accessKey=%s;secretKey=%s;bucket=%s" .Release.Name .Values.minio.rootUser .Values.minio.rootPassword (index .Values.minio.buckets 0).name -}}
+{{- else -}}
+{{- "" -}}
+{{- end -}}
+{{- end }}

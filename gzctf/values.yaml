@@ -40,34 +40,115 @@ gzctf:
       verbs:
       - '*'
 
-  # -- GZCTF application settings (appsettings.json content)
-  # @default -- See values.yaml for full configuration
-  appsettings: |
-    {
-      "AllowedHosts": "*",
-      "ConnectionStrings": {
-        "Database": "Host=gzctf-db:5432;Database=gzctf;Username=postgres;Password=gzctf",
-        //"RedisCache": "gzctf-garnet:6379,password=gzctf",
-        //"Storage": "minio.s3://accessKey=gzctf;secretKey=gzctf;bucket=gzctf-bucket;endpoint=http://gzctf-rustfs-svc:9000;forcePathStyle=true"
-      },
-      "XorKey": "gzctf",
-      "ContainerProvider": {
-        "Type": "Kubernetes",
-        "PortMappingType": "Default",
-        "EnableTrafficCapture": false,
-        "PublicEntry": "ctf.example.com",
-        "KubernetesConfig": {
-          "Namespace": "gzctf-challenges",
-          "AllowCIDR": [
-            "10.0.0.0/8"
-          ],
-          "DNS": [
-            "8.8.8.8",
-            "223.5.5.5"
-          ]
-        }
-      }
-    }
+  # -- GZCTF application configuration (structured format)
+  # This replaces the previous appsettings string with a structured configuration
+  # that is more maintainable and follows Helm best practices
+  config:
+    allowedHosts: "*"
+
+    # Database connection
+    database:
+      # Host will be auto-generated as <release-name>-postgresql:5432 when using built-in PostgreSQL
+      # You can override it here if using external database
+      # host: external-postgres:5432
+      name: gzctf
+      username: postgres
+      # Password for PostgreSQL - CHANGE THIS!
+      password: "gzctf"
+
+    # Redis cache connection
+    redis:
+      # Host will be auto-generated based on enabled cache (garnet or redis-ha)
+      # You can override it here if using external Redis
+      # host: external-redis:6379
+      abortConnect: false
+
+    # Storage configuration (MinIO/S3)
+    storage:
+      # Enable S3-compatible storage (MinIO)
+      # If not enabled, files will be stored locally in PVC
+      enabled: false
+      # Connection string will be auto-generated if using built-in MinIO
+      # Format: minio.s3://serviceUrl=minio:9000;accessKey=key;secretKey=secret;bucket=bucket-name
+      # You can override it here if using external S3
+      # connectionString: "minio.s3://serviceUrl=s3.amazonaws.com;region=us-east-1;accessKey=xxx;secretKey=xxx;bucket=my-bucket"
+
+    # Logging configuration
+    logging:
+      logLevel:
+        default: Warning
+        microsoft: Warning
+        microsoftAspNetCoreHttpOverrides: Debug
+
+    # XOR key for encryption - CHANGE THIS!
+    xorKey: "gzctf"
+
+    # Email configuration
+    email:
+      senderAddress: "noreply@example.com"
+      userName: "noreply@example.com"
+      password: ""
+      smtp:
+        host: smtp.example.com
+        port: 587
+
+    # Container provider configuration
+    containerProvider:
+      type: Kubernetes
+      portMappingType: Default
+      enableTrafficCapture: false
+      # Public entry for the platform - CHANGE THIS to your domain!
+      publicEntry: "ctf.example.com"
+
+    # Request logging
+    requestLogging: false
+
+    # Rate limiting
+    disableRateLimit: false
+
+    # CAPTCHA configuration
+    captcha:
+      provider: "None" # Options: "None", "CloudflareTurnstile", "GoogleRecaptcha"
+      siteKey: ""
+      secretKey: ""
+
+    # Container registries credentials
+    registries: {}
+      # Example:
+      # ghcr.io:
+      #   userName: "your-username"
+      #   password: "ghp_your-token"
+
+    # Forwarded headers configuration (for reverse proxy)
+    forwardedOptions:
+      forwardedHeaders: 15
+      forwardLimit: 3
+      # Trusted networks (add your ingress controller's network CIDR)
+      trustedNetworks:
+        - "10.0.0.0/8"
+        # Example for common Kubernetes networks:
+        # - "10.42.0.0/16"    # K3s default pod network
+        # - "10.244.0.0/16"   # Flannel default
+
+    # Telemetry configuration
+    telemetry:
+      enable: true
+      prometheus:
+        enable: true
+      openTelemetry:
+        enable: false
+        protocol: Grpc
+        endpointUri: ""
+
+    # Kestrel configuration
+    kestrel:
+      limits:
+        maxResponseBufferSize: 2048
+        maxRequestBufferSize: 1048576
+        maxRequestLineSize: 8192
+        maxRequestHeadersTotalSize: 32768
+        maxRequestHeaderCount: 100
+        maxRequestBodySize: 134217728
 
 # -- Image pull secrets for private container registries
   imagePullSecrets: []
@@ -135,6 +216,50 @@ gzctf:
             pathType: Prefix
     # -- TLS configuration for ingress
     tls: []
+
+  # HTTPRoute configuration (Gateway API)
+  # Gateway API is the next-generation traffic management API for Kubernetes
+  # Requires Gateway API CRDs to be installed: https://gateway-api.sigs.k8s.io/
+  httpRoute:
+    # -- Enable HTTPRoute for GZCTF (requires Gateway API CRDs)
+    enabled: false
+    # -- Annotations for HTTPRoute resource
+    annotations: {}
+
+    # Reference to Gateway(s) that this HTTPRoute should attach to
+    parentRefs:
+      - name: gateway
+        namespace: default
+        # Optional: specify a section name for a specific listener
+        # sectionName: https
+
+    # Hostnames for HTTP request matching
+    hostnames:
+      - ctf.example.com
+
+    # Advanced routing rules (optional)
+    # If not specified, a default rule routing all traffic to GZCTF service will be created
+    rules: []
+      # Example: Path-based routing
+      # - matches:
+      #     - path:
+      #         type: PathPrefix
+      #         value: /
+      #   backendRefs:
+      #     - name: gzctf  # Will be auto-generated as release-name
+      #       port: 8080
+      #
+      # Example: Header-based routing
+      # - matches:
+      #     - path:
+      #         type: PathPrefix
+      #         value: /api
+      #       headers:
+      #         - name: version
+      #           value: v2
+      #   backendRefs:
+      #     - name: gzctf
+      #       port: 8080
 
   # -- Resource requests and limits for GZCTF container
   resources:
@@ -205,7 +330,7 @@ garnet:
     # -- Garnet image registry
     registry: ghcr.io
     # -- Garnet image repository
-    repostiory: microsoft/garnet
+    repository: microsoft/garnet
     # -- Garnet image tag (empty string uses chart appVersion)
     tag: ""
   
@@ -467,7 +592,6 @@ postgresql-ha:
     accessMode: ReadWriteOnce
     # -- Persistent volume size
     size: 2Gi
-
 
 # RustFS object storage configuration (override the rustfs subchart values)
 rustfs:

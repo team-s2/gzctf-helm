@@ -16,7 +16,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       {{- with .Values.gzctf.podAnnotations }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -78,8 +78,8 @@ spec:
             sizeLimit: 256Mi
         {{- end }}
         - name: {{ include "gzctf.fullname" . }}-appsettings
-          secret:
-            secretName: {{ include "gzctf.fullname" . }}
+          configMap:
+            name: {{ include "gzctf.fullname" . }}-config
       {{- with .Values.gzctf.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
