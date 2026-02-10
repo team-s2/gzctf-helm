@@ -14,11 +14,19 @@ gzctf:
     # -- GZCTF image tag
     tag: "v1.8.5"
 
+  # -- Secret configuration for sensitive data
+  secret:
+    # -- Create a secret for GZCTF (set to false to use an existing secret)
+    create: true
+    # -- Name of existing secret to use (if create is false)
+    # existingSecret: "gzctf-existing-secret"
+    # -- Admin password for GZCTF (if not set, a random password will be generated)
+    # IMPORTANT: Leave empty on first install to auto-generate, then retrieve with:
+    # kubectl get secret <release-name>-gzctf-secret -o jsonpath='{.data.admin-password}' | base64 -d
+    adminPassword: ""
+
   # -- Environment variables for GZCTF container
   env:
-    # -- Initial admin password for GZCTF
-    - name: GZCTF_ADMIN_PASSWORD
-      value: "xxx"
     # -- Locale configuration
     - name: LC_ALL
       value: "en_US.UTF-8"

@@ -40,7 +40,18 @@ spec:
           image: "{{ .Values.gzctf.image.repository }}:{{ .Values.gzctf.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.gzctf.image.pullPolicy }}
           env:
-            {{- toYaml .Values.gzctf.env | nindent 12 }}
+            - name: GZCTF_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.gzctf.secret.create }}
+                  name: {{ include "gzctf.fullname" . }}-secret
+                  {{- else }}
+                  name: {{ .Values.gzctf.secret.existingSecret }}
+                  {{- end }}
+                  key: admin-password
+            {{- with .Values.gzctf.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.gzctf.service.port }}
