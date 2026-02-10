@@ -83,7 +83,7 @@ Redis connection string
 {{- if .Values.gzctf.config.redis.host -}}
 {{- printf "%s,abortConnect=%t" .Values.gzctf.config.redis.host .Values.gzctf.config.redis.abortConnect -}}
 {{- else if .Values.garnet.enabled -}}
-{{- printf "%s-garnet:6379,abortConnect=%t" (include "gzctf.fullname" .) .Values.gzctf.config.redis.abortConnect -}}
+{{- printf "%s-garnet:6379,password=gzctf,abortConnect=%t" (include "gzctf.fullname" .) .Values.gzctf.config.redis.abortConnect -}}
 {{- else if (index .Values "redis-ha").enabled -}}
 {{- if (index .Values "redis-ha").haproxy.enabled -}}
 {{- printf "%s-redis-ha-haproxy:6379,password=%s,abortConnect=%t" .Release.Name (index .Values "redis-ha").redisPassword .Values.gzctf.config.redis.abortConnect -}}
@@ -91,7 +91,7 @@ Redis connection string
 {{- printf "%s-redis-ha:6379,password=%s,abortConnect=%t" .Release.Name (index .Values "redis-ha").redisPassword .Values.gzctf.config.redis.abortConnect -}}
 {{- end -}}
 {{- else -}}
-{{- printf "gzctf-garnet:6379,abortConnect=%t" .Values.gzctf.config.redis.abortConnect -}}
+{{- printf "gzctf-garnet:6379,password=gzctf,abortConnect=%t" .Values.gzctf.config.redis.abortConnect -}}
 {{- end -}}
 {{- end }}
 
@@ -102,7 +102,7 @@ Storage connection string (MinIO/S3)
 {{- if .Values.gzctf.config.storage.connectionString -}}
 {{- .Values.gzctf.config.storage.connectionString -}}
 {{- else if and .Values.gzctf.config.storage.enabled .Values.minio.enabled -}}
-{{- printf "minio.s3://serviceUrl=%s-minio:9000;accessKey=%s;secretKey=%s;bucket=%s" .Release.Name .Values.minio.rootUser .Values.minio.rootPassword (index .Values.minio.buckets 0).name -}}
+{{- printf "minio.s3://serviceUrl=http://%s-minio:9000;keyId=%s;key=%s;bucket=%s;forcePathStyle=true" .Release.Name .Values.minio.rootUser .Values.minio.rootPassword (index .Values.minio.buckets 0).name -}}
 {{- else -}}
 {{- "" -}}
 {{- end -}}
