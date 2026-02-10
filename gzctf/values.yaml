@@ -537,10 +537,11 @@ postgresql:
 
 # PostgreSQL High Availability Configuration
 # Bitnami PostgreSQL HA chart with replication manager
+# NOTE: Secrets are managed via SealedSecrets in the main repo, not by this chart
 postgresql-ha:
   # -- Enable or disable PostgreSQL HA deployment (THIS USES BITNAMI LEGACY IMAGES BY DEFAULT WHICH NO LONGER RECIEVE RPOPER SECURITY UPDATES)
   enabled: false
-  
+
   postgresql:
     # Container image configuration
     image:
@@ -556,6 +557,8 @@ postgresql-ha:
     password: "gzctf"
     # -- Default database name to create
     database: "gzctf"
+    # -- Use existing secret for PostgreSQL passwords (auto-configured by parent chart)
+    existingSecret: "{{ .Release.Name }}-postgresql-ha-postgresql"
 
 
   pgpool:
@@ -566,6 +569,8 @@ postgresql-ha:
       repository: bitnamilegacy/pgpool
       # -- pgpool image tag
       tag: 4.6.3-debian-12-r0
+    # -- Use existing secret for Pgpool passwords (auto-configured by parent chart)
+    existingSecret: "{{ .Release.Name }}-postgresql-ha-pgpool"
 
   metrics:
     # -- postgresql exporter enable
