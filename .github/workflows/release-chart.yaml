@@ -29,7 +29,7 @@ jobs:
       - name: Add dependency chart repos
         run: |
           helm repo add dandydeveloper https://dandydeveloper.github.io/charts/
-          helm repo add minio https://charts.min.io/
+          helm repo add rustfs https://rustfs.github.io/helm
           helm repo add bitnami https://charts.bitnami.com/bitnami/
           cd gzctf/
           helm dep up

@@ -12,7 +12,7 @@ gzctf:
     # -- Image pull policy
     pullPolicy: Always
     # -- GZCTF image tag
-    tag: "v1.6.2"
+    tag: "v1.8.5"
 
   # -- Environment variables for GZCTF container
   env:
@@ -47,8 +47,8 @@ gzctf:
       "AllowedHosts": "*",
       "ConnectionStrings": {
         "Database": "Host=gzctf-db:5432;Database=gzctf;Username=postgres;Password=gzctf",
-        //"RedisCache": "gzctf-garnet:6379,password=gzctf",
-        //"Storage": "minio.s3://serviceUrl=gzctf-minio;keyId=gzctf;key=gzctf;bucket=gzctf-bucket"
+        "RedisCache": "gzctf-garnet:6379,password=gzctf",
+        "Storage": "minio.s3://accessKey=gzctf;secretKey=gzctf;bucket=gzctf-bucket;endpoint=http://gzctf-rustfs-svc:9000;forcePathStyle=true"
       },
       "XorKey": "gzctf",
       "ContainerProvider": {
@@ -129,7 +129,7 @@ gzctf:
       traefik.ingress.kubernetes.io/service.sticky.cookie.httponly: "true"
     # -- Ingress hosts configuration
     hosts:
-      - host: ctf.example.com
+      - host: gctf.example.com
         paths:
           - path: /
             pathType: Prefix
@@ -468,54 +468,33 @@ postgresql-ha:
     # -- Persistent volume size
     size: 2Gi
 
-# MinIO object storage configuration (override the minio subchart values)
-minio:
-  # -- Enable MinIO deployment (set to false if you want to use an external S3 bucket)
-  enabled: false
-  
-  # -- MinIO bucket configuration
-  buckets:
-    # -- Default bucket to be used by GZCTF
-    # @default -- `download` policy means this bucket is readonly for anonymous access (competitors)
-    - name: gzctf-bucket
-      # -- Bucket access policy (download = readonly for anonymous users)
-      policy: download
-      # -- Whether to purge the bucket on deletion
-      purge: false
-  
-  # Ingress configuration for MinIO (used by both GZCTF and competitors)
-  ingress:
-    # -- Enable ingress for MinIO
-    enabled: true
-    # -- Hostnames for MinIO ingress
-    hosts:
-      - minio.example.com
-    # -- Annotations for MinIO ingress
-    annotations: {}
-      # nginx.ingress.kubernetes.io/proxy-body-size: "0"
-  
-  # -- MinIO user
-  rootUser: gzctf
-  # -- MinIO password
-  rootPassword: gzctf
 
-  # -- Number of MinIO replicas/nodes
-  replicas: 3
+# RustFS object storage configuration (override the rustfs subchart values)
+rustfs:
+  # -- Enable RustFS deployment (set to false if you want to use an external S3 bucket)
+  enabled: true
+  # -- RustFS mode configuration
+  mode:
+    # -- Standalone mode configuration
+    standalone:
+      enabled: true
+    # -- Distributed mode configuration
+    distributed:
+      enabled: false
+  # -- RustFS secret configuration
+  secret:
+    # -- RustFS secret name
+    rustfs:
+      # -- RustFS access key
+      access_key: "gzctf"
+      # -- RustFS secret key
+      secret_key: "gzctf"
   
-  # -- Number of drives per MinIO replica/node
-  drivesPerNode: 1
-  
-  # -- Resource requests and limits for MinIO
-  resources:
-    # -- Resource requests for MinIO
-    requests:
-      # -- Memory request for MinIO
-      memory: 2Gi
-  
-  # -- MinIO persistent storage configuration
-  persistence:
-    # -- Size of persistent volume for each MinIO instance (adjust according to your needs)
-    size: 10Gi
+  # -- RustFS storage class configuration
+  storageclass:
+    # -- Data storage size
+    dataStorageSize: 10Gi
+
 
 # -- Additional Kubernetes manifests to deploy with this Helm chart
 extraObjects: []

@@ -2,7 +2,7 @@ apiVersion: v2
 name: gzctf
 description: A Helm chart for deploying GZCTF on Kubernetes
 type: application
-version: 0.1.5
+version: 0.1.6
 
 dependencies:
   - name: garnet
@@ -17,8 +17,7 @@ dependencies:
     version: 16.3.2
     repository: https://charts.bitnami.com/bitnami
     condition: postgresql-ha.enabled
-  - name: minio
-    alias: minio
-    version: 5.4.0
-    repository: https://charts.min.io
-    condition: minio.enabled
+  - name: rustfs
+    version: 0.2.0
+    repository: https://rustfs.github.io/helm
+    condition: rustfs.enabled
