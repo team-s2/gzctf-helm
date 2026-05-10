@@ -47,8 +47,8 @@ gzctf:
       "AllowedHosts": "*",
       "ConnectionStrings": {
         "Database": "Host=gzctf-db:5432;Database=gzctf;Username=postgres;Password=gzctf",
-        "RedisCache": "gzctf-garnet:6379,password=gzctf",
-        "Storage": "minio.s3://accessKey=gzctf;secretKey=gzctf;bucket=gzctf-bucket;endpoint=http://gzctf-rustfs-svc:9000;forcePathStyle=true"
+        //"RedisCache": "gzctf-garnet:6379,password=gzctf",
+        //"Storage": "minio.s3://accessKey=gzctf;secretKey=gzctf;bucket=gzctf-bucket;endpoint=http://gzctf-rustfs-svc:9000;forcePathStyle=true"
       },
       "XorKey": "gzctf",
       "ContainerProvider": {
@@ -472,7 +472,7 @@ postgresql-ha:
 # RustFS object storage configuration (override the rustfs subchart values)
 rustfs:
   # -- Enable RustFS deployment (set to false if you want to use an external S3 bucket)
-  enabled: true
+  enabled: false
   # -- RustFS mode configuration
   mode:
     # -- Standalone mode configuration
@@ -486,9 +486,9 @@ rustfs:
     # -- RustFS secret name
     rustfs:
       # -- RustFS access key
-      access_key: "gzctf"
+      access_key: ""
       # -- RustFS secret key
-      secret_key: "gzctf"
+      secret_key: ""
   
   # -- RustFS storage class configuration
   storageclass:

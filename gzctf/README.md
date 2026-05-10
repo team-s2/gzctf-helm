@@ -1,8 +1,8 @@
 # GZCTF Helm Chart
-![Version: 0.1.5](https://img.shields.io/badge/Version-0.1.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+![Version: 0.1.7](https://img.shields.io/badge/Version-0.1.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
 [![Lint and Server-side Dryrun Chart](https://github.com/GZCTF/helm/actions/workflows/lint-and-test-chart.yaml/badge.svg)](https://github.com/GZCTF/helm/actions/workflows/lint-and-test-chart.yaml)
 
-This is a Helm chart for deploying GZCTF on Kubernetes. It deploys the official [GZCTF Docker image](https://ghcr.io/gztimewalker/gzctf/gzctf). Optional HA/Autoscaling (still experimental) + postgresql or postgresql-ha + [Garnet](https://github.com/microsoft/Garnet) or [redis-ha](https://github.com/DandyDeveloper/charts/tree/master/charts/redis-ha) + [MinIO S3](https://github.com/minio/minio/tree/master/helm/minio). Also supports using external Postgresql/Redis/S3.
+This is a Helm chart for deploying GZCTF on Kubernetes. It deploys the official [GZCTF Docker image](https://ghcr.io/gztimewalker/gzctf/gzctf). Optional HA/Autoscaling (experimental) + postgresql or postgresql-ha + [Garnet](https://github.com/microsoft/Garnet) or [redis-ha](https://github.com/DandyDeveloper/charts/tree/master/charts/redis-ha) + [RustFS S3](https://github.com/rustfs/rustfs). Also supports using external Postgresql/Redis/S3.
 
 ## Add the helm repo
 ```bash
@@ -18,7 +18,7 @@ helm install gzctf gzctf/gzctf \
 ```
 ## Install with custom values.yaml
 
-If you need to install garnet or redis-ha and/or postgresql-ha and/or MinIO. Also if you need to set passwords/xorkey
+If you need to install garnet or redis-ha and/or postgresql-ha and/or RustFS. Also if you need to set passwords/xorkey
 ```bash
 helm install gzctf gzctf/gzctf -f values.yaml
 ```
@@ -46,12 +46,12 @@ helm uninstall release-name --namespace gzctf
 - multi-node deployment is still experimental (needs extensive testing)
 - gzctf support for s3 bucket is experimental (single-node deployment doesnt need s3 bucket)
 - garnet/redis is not needed for single-node deployment
-- minio stopped releasing community edition binaries and docker images [minio/minio/issues/21647](https://github.com/minio/minio/issues/21647)
+- ~~minio stopped releasing community edition binaries and docker images [minio/minio/issues/21647](https://github.com/minio/minio/issues/21647)~~ We replaced it with RustFS instead.
 - postgresql-ha bitnami image is [legacy/deprecated](https://github.com/bitnami/containers/issues/83267)
 
 ## Values examples
 
-### Deploy Postgresql + Garnet + Minio
+### Deploy Postgresql + Garnet + RustFS
 ```yaml
 gzctf:
   image:
@@ -62,7 +62,7 @@ gzctf:
       "ConnectionStrings": {
         "Database": "Host=gzctf-db:5432;Database=gzctf;Username=postgres;Password=gzctf",
         "RedisCache": "gzctf-garnet:6379,password=gzctf",
-        "Storage": "minio.s3://serviceUrl=gzctf-minio;keyId=gzctf;key=gzctf;bucket=gzctf-bucket"
+        "Storage": "minio.s3://accessKey=...;secretKey=...;bucket=...;endpoint=...;forcePathStyle=true"
       },
       ...
     } # content of appsettings.json
@@ -99,12 +99,15 @@ postgresql:
     enabled: true
     size: 2Gi
 
-minio:
+rustfs:
   enabled: true
-  persistence:
-    size: 10Gi
-  rootUser: gzctf
-  rootPassword: gzctf # needs to be consistent with the MinIO.S3 password in appsettings.json
+  secret:
+    rustfs:
+      access_key: "gzctf"
+      secret_key: "gzctf" needs to be consistent with the storage configurations in appsettings.json
+  storageclass:
+    dataStorageSize: 10Gi
+
 ```
 
 ### Configure your own external DB/Redis/S3
@@ -118,7 +121,7 @@ GZCTF:
       "ConnectionStrings": {
         "Database": "Host=...;Database=...;Username=...;Password=...",
         "RedisCache": "...,password=...",
-        "Storage": "minio.s3://serviceUrl=...;keyId=...;key=...;bucket=..."
+        "Storage": "minio.s3://accessKey=...;secretKey=...;bucket=...;endpoint=...;forcePathStyle=true"
       },
       ...
     } # content of appsettings.json
@@ -127,7 +130,7 @@ postgresql:
   enabled: false
 garnet:
   enabled: false
-minio:
+rustfs:
   enabled: false
 ```
 
@@ -136,8 +139,8 @@ minio:
 | Repository | Name | Version |
 |------------|------|---------|
 | https://charts.bitnami.com/bitnami | postgresql-ha | 16.3.2 |
-| https://charts.min.io | minio(minio) | 5.4.0 |
 | https://dandydeveloper.github.io/charts | redis-ha | 4.33.7 |
+| https://rustfs.github.io/helm | rustfs | 0.2.0 |
 | oci://ghcr.io/microsoft/helm-charts | garnet | 0.2.2 |
 
 ## Values
@@ -167,15 +170,15 @@ minio:
 | gzctf.env[0] | object | `{"name":"GZCTF_ADMIN_PASSWORD","value":"xxx"}` | Initial admin password for GZCTF |
 | gzctf.env[1] | object | `{"name":"LC_ALL","value":"en_US.UTF-8"}` | Locale configuration |
 | gzctf.fullnameOverride | string | `""` | Override the full name of the chart |
-| gzctf.image | object | `{"pullPolicy":"Always","repository":"ghcr.io/gztimewalker/gzctf/gzctf","tag":"v1.6.2"}` | GZCTF container image configuration |
+| gzctf.image | object | `{"pullPolicy":"Always","repository":"ghcr.io/gztimewalker/gzctf/gzctf","tag":"v1.8.5"}` | GZCTF container image configuration |
 | gzctf.image.pullPolicy | string | `"Always"` | Image pull policy |
 | gzctf.image.repository | string | `"ghcr.io/gztimewalker/gzctf/gzctf"` | GZCTF image repository |
-| gzctf.image.tag | string | `"v1.6.2"` | GZCTF image tag |
+| gzctf.image.tag | string | `"v1.8.5"` | GZCTF image tag |
 | gzctf.imagePullSecrets | list | `[]` | Image pull secrets for private container registries |
 | gzctf.ingress.annotations | object | `{"traefik.ingress.kubernetes.io/service.sticky.cookie":"true","traefik.ingress.kubernetes.io/service.sticky.cookie.httponly":"true","traefik.ingress.kubernetes.io/service.sticky.cookie.name":"LB_Session"}` | Annotations for ingress resource |
 | gzctf.ingress.className | string | `""` | Ingress class name |
 | gzctf.ingress.enabled | bool | `true` | Enable ingress for GZCTF |
-| gzctf.ingress.hosts | list | `[{"host":"ctf.example.com","paths":[{"path":"/","pathType":"Prefix"}]}]` | Ingress hosts configuration |
+| gzctf.ingress.hosts | list | `[{"host":"gctf.example.com","paths":[{"path":"/","pathType":"Prefix"}]}]` | Ingress hosts configuration |
 | gzctf.ingress.tls | list | `[]` | TLS configuration for ingress |
 | gzctf.livenessProbe | object | `{"httpGet":{"path":"/healthz","port":"metrics"}}` | Liveness probe configuration |
 | gzctf.metrics.enabled | bool | `true` | Enable metrics port |
@@ -209,23 +212,6 @@ minio:
 | gzctf.tolerations | list | `[]` | Tolerations for GZCTF pod scheduling |
 | gzctf.volumeMounts | list | `[]` | Additional volume mounts for GZCTF container |
 | gzctf.volumes | list | `[]` | Additional volumes for GZCTF pod |
-| minio.buckets | list | `[{"name":"gzctf-bucket","policy":"download","purge":false}]` | MinIO bucket configuration |
-| minio.buckets[0] | object | `download` policy means this bucket is readonly for anonymous access (competitors) | Default bucket to be used by GZCTF |
-| minio.buckets[0].policy | string | `"download"` | Bucket access policy (download = readonly for anonymous users) |
-| minio.buckets[0].purge | bool | `false` | Whether to purge the bucket on deletion |
-| minio.drivesPerNode | int | `1` | Number of drives per MinIO replica/node |
-| minio.enabled | bool | `false` | Enable MinIO deployment (set to false if you want to use an external S3 bucket) |
-| minio.ingress.annotations | object | `{}` | Annotations for MinIO ingress |
-| minio.ingress.enabled | bool | `true` | Enable ingress for MinIO |
-| minio.ingress.hosts | list | `["minio.example.com"]` | Hostnames for MinIO ingress |
-| minio.persistence | object | `{"size":"10Gi"}` | MinIO persistent storage configuration |
-| minio.persistence.size | string | `"10Gi"` | Size of persistent volume for each MinIO instance (adjust according to your needs) |
-| minio.replicas | int | `3` | Number of MinIO replicas/nodes |
-| minio.resources | object | `{"requests":{"memory":"2Gi"}}` | Resource requests and limits for MinIO |
-| minio.resources.requests | object | `{"memory":"2Gi"}` | Resource requests for MinIO |
-| minio.resources.requests.memory | string | `"2Gi"` | Memory request for MinIO |
-| minio.rootPassword | string | `"gzctf"` | MinIO password |
-| minio.rootUser | string | `"gzctf"` | MinIO user |
 | postgresql-ha.enabled | bool | `false` | Enable or disable PostgreSQL HA deployment (THIS USES BITNAMI LEGACY IMAGES BY DEFAULT WHICH NO LONGER RECIEVE RPOPER SECURITY UPDATES) |
 | postgresql-ha.metrics.enabled | bool | `false` | postgresql exporter enable |
 | postgresql-ha.metrics.image.registry | string | `"docker.io"` | postgres-exporter image registry |
@@ -308,5 +294,15 @@ minio:
 | redis-ha.topologySpreadConstraints.maxSkew | string | `""` (defaults to `1`) | Max skew of pods tolerated |
 | redis-ha.topologySpreadConstraints.topologyKey | string | `""` (defaults to `topology.kubernetes.io/zone`) | Topology key for spread |
 | redis-ha.topologySpreadConstraints.whenUnsatisfiable | string | `""` (defaults to `ScheduleAnyway`) | Enforcement policy, hard or soft |
+| rustfs.enabled | bool | `false` | Enable RustFS deployment (set to false if you want to use an external S3 bucket) |
+| rustfs.mode | object | `{"distributed":{"enabled":false},"standalone":{"enabled":true}}` | RustFS mode configuration |
+| rustfs.mode.distributed | object | `{"enabled":false}` | Distributed mode configuration |
+| rustfs.mode.standalone | object | `{"enabled":true}` | Standalone mode configuration |
+| rustfs.secret | object | `{"rustfs":{"access_key":"","secret_key":""}}` | RustFS secret configuration |
+| rustfs.secret.rustfs | object | `{"access_key":"","secret_key":""}` | RustFS secret name |
+| rustfs.secret.rustfs.access_key | string | `""` | RustFS access key |
+| rustfs.secret.rustfs.secret_key | string | `""` | RustFS secret key |
+| rustfs.storageclass | object | `{"dataStorageSize":"10Gi"}` | RustFS storage class configuration |
+| rustfs.storageclass.dataStorageSize | string | `"10Gi"` | Data storage size |
 
 Autogenerated from chart metadata using [helm-docs](https://github.com/norwoodj/helm-docs)

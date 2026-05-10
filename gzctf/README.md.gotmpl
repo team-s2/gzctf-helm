@@ -2,7 +2,7 @@
 {{ template "chart.badgesSection" . }}
 [![Lint and Server-side Dryrun Chart](https://github.com/GZCTF/helm/actions/workflows/lint-and-test-chart.yaml/badge.svg)](https://github.com/GZCTF/helm/actions/workflows/lint-and-test-chart.yaml)
 
-This is a Helm chart for deploying GZCTF on Kubernetes. It deploys the official [GZCTF Docker image](https://ghcr.io/gztimewalker/gzctf/gzctf). Optional HA/Autoscaling (still experimental) + postgresql or postgresql-ha + [Garnet](https://github.com/microsoft/Garnet) or [redis-ha](https://github.com/DandyDeveloper/charts/tree/master/charts/redis-ha) + [MinIO S3](https://github.com/minio/minio/tree/master/helm/minio). Also supports using external Postgresql/Redis/S3.
+This is a Helm chart for deploying GZCTF on Kubernetes. It deploys the official [GZCTF Docker image](https://ghcr.io/gztimewalker/gzctf/gzctf). Optional HA/Autoscaling (experimental) + postgresql or postgresql-ha + [Garnet](https://github.com/microsoft/Garnet) or [redis-ha](https://github.com/DandyDeveloper/charts/tree/master/charts/redis-ha) + [RustFS S3](https://github.com/rustfs/rustfs). Also supports using external Postgresql/Redis/S3.
 
 ## Add the helm repo
 ```bash
@@ -18,7 +18,7 @@ helm install gzctf gzctf/gzctf \
 ```
 ## Install with custom values.yaml
 
-If you need to install garnet or redis-ha and/or postgresql-ha and/or MinIO. Also if you need to set passwords/xorkey
+If you need to install garnet or redis-ha and/or postgresql-ha and/or RustFS. Also if you need to set passwords/xorkey
 ```bash
 helm install gzctf gzctf/gzctf -f values.yaml
 ```
@@ -46,12 +46,12 @@ helm uninstall release-name --namespace gzctf
 - multi-node deployment is still experimental (needs extensive testing)
 - gzctf support for s3 bucket is experimental (single-node deployment doesnt need s3 bucket)
 - garnet/redis is not needed for single-node deployment
-- minio stopped releasing community edition binaries and docker images [minio/minio/issues/21647](https://github.com/minio/minio/issues/21647)
+- ~~minio stopped releasing community edition binaries and docker images [minio/minio/issues/21647](https://github.com/minio/minio/issues/21647)~~ We replaced it with RustFS instead.
 - postgresql-ha bitnami image is [legacy/deprecated](https://github.com/bitnami/containers/issues/83267)
 
 ## Values examples
 
-### Deploy Postgresql + Garnet + Minio
+### Deploy Postgresql + Garnet + RustFS
 ```yaml
 gzctf:
   image:
@@ -62,7 +62,7 @@ gzctf:
       "ConnectionStrings": {
         "Database": "Host=gzctf-db:5432;Database=gzctf;Username=postgres;Password=gzctf",
         "RedisCache": "gzctf-garnet:6379,password=gzctf",
-        "Storage": "minio.s3://serviceUrl=gzctf-minio;keyId=gzctf;key=gzctf;bucket=gzctf-bucket"
+        "Storage": "minio.s3://accessKey=...;secretKey=...;bucket=...;endpoint=...;forcePathStyle=true"
       },
       ...
     } # content of appsettings.json
@@ -99,12 +99,15 @@ postgresql:
     enabled: true
     size: 2Gi
 
-minio:
+rustfs:
   enabled: true
-  persistence:
-    size: 10Gi
-  rootUser: gzctf
-  rootPassword: gzctf # needs to be consistent with the MinIO.S3 password in appsettings.json
+  secret:
+    rustfs:
+      access_key: "gzctf" 
+      secret_key: "gzctf" needs to be consistent with the storage configurations in appsettings.json
+  storageclass:
+    dataStorageSize: 10Gi
+
 ```
 
 ### Configure your own external DB/Redis/S3
@@ -118,7 +121,7 @@ GZCTF:
       "ConnectionStrings": {
         "Database": "Host=...;Database=...;Username=...;Password=...",
         "RedisCache": "...,password=...",
-        "Storage": "minio.s3://serviceUrl=...;keyId=...;key=...;bucket=..."
+        "Storage": "minio.s3://accessKey=...;secretKey=...;bucket=...;endpoint=...;forcePathStyle=true"
       },
       ...
     } # content of appsettings.json
@@ -127,7 +130,7 @@ postgresql:
   enabled: false
 garnet:
   enabled: false
-minio:
+rustfs:
   enabled: false
 ```
 
