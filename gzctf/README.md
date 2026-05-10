@@ -104,7 +104,7 @@ rustfs:
   secret:
     rustfs:
       access_key: "gzctf"
-      secret_key: "gzctf" needs to be consistent with the storage configurations in appsettings.json
+      secret_key: "gzctf" # needs to be consistent with the storage configurations in appsettings.json
   storageclass:
     dataStorageSize: 10Gi
 
