@@ -51,7 +51,6 @@ jobs:
       - name: Run chart-testing (install)
         run: |
           helm repo add dandydeveloper https://dandydeveloper.github.io/charts/
-          helm repo add minio https://charts.min.io/
           helm repo add bitnami https://charts.bitnami.com/bitnami/
           helm repo update
           cd gzctf/
