@@ -22,7 +22,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-      labels:
         helm.sh/chart: {{ include "gzctf.chart" . }}
         app.kubernetes.io/name: {{ include "gzctf.name" . }}-db
         app.kubernetes.io/instance: {{ .Release.Name }}
